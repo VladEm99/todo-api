@@ -3,6 +3,7 @@ module todo-api
 go 1.23.5
 
 require (
+	github.com/google/uuid v1.3.0
 	github.com/bytedance/sonic v1.12.7 // indirect
 	github.com/bytedance/sonic/loader v0.2.3 // indirect
 	github.com/cloudwego/base64x v0.1.5 // indirect
