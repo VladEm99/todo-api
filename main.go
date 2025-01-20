@@ -94,6 +94,120 @@ func main() {
 		c.JSON(http.StatusCreated, gin.H{"message": "Задача успешно добавлена"})
 	})
 
+    // PATCH /tasks/:id - обновление конкретных полей задачи
+    r.PATCH("/tasks/:id", func(c *gin.Context) {
+    	id := c.Param("id") // Получаем ID задачи из URL
+
+    	// Структура для получения данных из запроса
+    	var updates struct {
+    		Name        *string `json:"name"`
+    		Description *string `json:"description"`
+    		Status      *string `json:"status"`
+    		Priority    *int    `json:"priority"`
+    		DueDate     *string `json:"due_date"`
+    	}
+    	if err := c.BindJSON(&updates); err != nil {
+    		c.JSON(http.StatusBadRequest, gin.H{"error": "Некорректный ввод данных"})
+    		return
+    	}
+
+    	// Формируем запрос для обновления только переданных полей
+    	query := "UPDATE tasks SET "
+    	params := []interface{}{}
+    	paramIndex := 1
+
+    	if updates.Name != nil {
+    		query += fmt.Sprintf("name = $%d, ", paramIndex)
+    		params = append(params, *updates.Name)
+    		paramIndex++
+    	}
+    	if updates.Description != nil {
+    		query += fmt.Sprintf("description = $%d, ", paramIndex)
+    		params = append(params, *updates.Description)
+    		paramIndex++
+    	}
+    	if updates.Status != nil {
+    		query += fmt.Sprintf("status = $%d, ", paramIndex)
+    		params = append(params, *updates.Status)
+    		paramIndex++
+    	}
+    	if updates.Priority != nil {
+    		query += fmt.Sprintf("priority = $%d, ", paramIndex)
+    		params = append(params, *updates.Priority)
+    		paramIndex++
+    	}
+    	if updates.DueDate != nil {
+    		query += fmt.Sprintf("due_date = $%d, ", paramIndex)
+    		params = append(params, *updates.DueDate)
+    		paramIndex++
+    	}
+
+    	// Убираем лишнюю запятую и добавляем условие WHERE
+    	query = query[:len(query)-2] + fmt.Sprintf(" WHERE id = $%d", paramIndex)
+    	params = append(params, id)
+
+    	// Выполняем запрос
+    	_, err := db.Exec(query, params...)
+    	if err != nil {
+    		c.JSON(http.StatusInternalServerError, gin.H{"error": "Не удалось обновить задачу"})
+    		return
+    	}
+
+    	c.JSON(http.StatusOK, gin.H{"message": "Задача успешно обновлена"})
+    })
+
+    // DELETE /tasks/:id - удаление задачи
+    r.DELETE("/tasks/:id", func(c *gin.Context) {
+        id := c.Param("id")
+
+        query := "DELETE FROM tasks WHERE id = $1"
+        result, err := db.Exec(query, id)
+        if err != nil {
+            c.JSON(http.StatusInternalServerError, gin.H{"error": "Не удалось удалить задачу"})
+            return
+        }
+
+        rowsAffected, _ := result.RowsAffected()
+        if rowsAffected == 0 {
+            c.JSON(http.StatusNotFound, gin.H{"error": "Задача не найдена"})
+            return
+        }
+
+        c.JSON(http.StatusOK, gin.H{"message": "Задача успешно удалена"})
+    })
+
+    // GET /tasks/:id - получение задачи по ID
+    r.GET("/tasks/:id", func(c *gin.Context) {
+        id := c.Param("id")
+
+        var task Task
+        var description, dueDate *string
+
+        query := "SELECT id, name, description, status, priority, due_date, created_at, updated_at FROM tasks WHERE id = $1"
+        err := db.QueryRow(query, id).Scan(
+            &task.ID,
+            &task.Name,
+            &description,
+            &task.Status,
+            &task.Priority,
+            &dueDate,
+            &task.CreatedAt,
+            &task.UpdatedAt,
+        )
+        if err == sql.ErrNoRows {
+            c.JSON(http.StatusNotFound, gin.H{"error": "Задача не найдена"})
+            return
+        } else if err != nil {
+            c.JSON(http.StatusInternalServerError, gin.H{"error": "Не удалось получить задачу"})
+            return
+        }
+
+        task.Description = description
+        task.DueDate = dueDate
+
+        c.JSON(http.StatusOK, task)
+    })
+
 	// Run server
 	r.Run(":8080")
 }
