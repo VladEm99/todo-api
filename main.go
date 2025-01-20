@@ -6,11 +6,17 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// Task represents a task with an ID and Name
+type Task struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+}
+
 func main() {
 	r := gin.Default()
 
 	// In-memory storage for tasks
-	tasks := []string{}
+	tasks := []Task{}
 
 	// Endpoint to get all tasks
 	r.GET("/tasks", func(c *gin.Context) {
@@ -26,8 +32,15 @@ func main() {
 			c.JSON(400, gin.H{"error": "Invalid input"})
 			return
 		}
-		tasks = append(tasks, newTask.Name)
-		c.JSON(201, gin.H{"message": "Task added"})
+
+		// Generate a new unique ID
+		newID := strconv.Itoa(len(tasks) + 1)
+		task := Task{
+			ID:   newID,
+			Name: newTask.Name,
+		}
+		tasks = append(tasks, task)
+		c.JSON(201, gin.H{"message": "Task added", "task": task})
 	})
 
 	// PUT /tasks/:id - обновляет задачу
@@ -41,32 +54,34 @@ func main() {
 			return
 		}
 
-		// Преобразуем id в индекс
-		taskIndex, err := strconv.Atoi(id)
-		if err != nil || taskIndex < 0 || taskIndex >= len(tasks) {
-			c.JSON(404, gin.H{"error": "Task not found"})
-			return
+		// Найти задачу по ID
+		for i, task := range tasks {
+			if task.ID == id {
+				// Обновляем задачу
+				tasks[i].Name = updatedTask.Name
+				c.JSON(200, gin.H{"message": "Task updated", "task": tasks[i]})
+				return
+			}
 		}
 
-		// Обновляем задачу
-		tasks[taskIndex] = updatedTask.Name
-		c.JSON(200, gin.H{"message": "Task updated"})
+		c.JSON(404, gin.H{"error": "Task not found"})
 	})
 
 	// DELETE /tasks/:id - удаляет задачу
 	r.DELETE("/tasks/:id", func(c *gin.Context) {
 		id := c.Param("id") // Получаем id из параметра пути
 
-		// Преобразуем id в индекс
-		taskIndex, err := strconv.Atoi(id)
-		if err != nil || taskIndex < 0 || taskIndex >= len(tasks) {
-			c.JSON(404, gin.H{"error": "Task not found"})
-			return
+		// Найти задачу по ID
+		for i, task := range tasks {
+			if task.ID == id {
+				// Удаляем задачу
+				tasks = append(tasks[:i], tasks[i+1:]...)
+				c.JSON(200, gin.H{"message": "Task deleted"})
+				return
+			}
 		}
 
-		// Удаляем задачу
-		tasks = append(tasks[:taskIndex], tasks[taskIndex+1:]...)
-		c.JSON(200, gin.H{"message": "Task deleted"})
+		c.JSON(404, gin.H{"error": "Task not found"})
 	})
 
 	// Run the server on port 8080
