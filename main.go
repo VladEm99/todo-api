@@ -25,23 +25,23 @@ func main() {
 
 	// Endpoint to add a new task
 	r.POST("/tasks", func(c *gin.Context) {
-		var newTask struct {
-			Name string `json:"name"`
-		}
-		if err := c.BindJSON(&newTask); err != nil {
-			c.JSON(400, gin.H{"error": "Invalid input"})
-			return
-		}
+    	var newTask struct {
+    		Name string `json:"name"`
+    	}
+    	if err := c.BindJSON(&newTask); err != nil {
+    		c.JSON(400, gin.H{"error": "Invalid input"})
+    		return
+    	}
 
-		// Generate a new unique ID
-		newID := strconv.Itoa(len(tasks) + 1)
-		task := Task{
-			ID:   newID,
-			Name: newTask.Name,
-		}
-		tasks = append(tasks, task)
-		c.JSON(201, gin.H{"message": "Task added", "task": task})
-	})
+    	// Генерируем UUID
+    	taskID := uuid.New().String()
+    	task := Task{ID: taskID, Name: newTask.Name}
+
+    	// Добавляем задачу в массив
+    	tasks = append(tasks, task)
+
+    	c.JSON(201, gin.H{"message": "Task added", "task": task})
+    })
 
 	// PUT /tasks/:id - обновляет задачу
 	r.PUT("/tasks/:id", func(c *gin.Context) {
