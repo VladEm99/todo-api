@@ -27,7 +27,7 @@ func main() {
 	// Подключение к базе данных
 	db, err := sql.Open("postgres", fmt.Sprintf(
 		"host=%s port=%s user=%s password=%s dbname=%s sslmode=require",
-		os.Getenv("HOST"), os.Getenv("PORT"), os.Getenv("USER"), os.Getenv("PASSWORD"), os.Getenv("DBNAME"),
+		os.Getenv("HOST"), os.Getenv("DBPORT"), os.Getenv("USER"), os.Getenv("PASSWORD"), os.Getenv("DBNAME"),
 	))
 	if err != nil {
 		log.Fatalf("Не удалось подключиться к базе данных: %v", err)
